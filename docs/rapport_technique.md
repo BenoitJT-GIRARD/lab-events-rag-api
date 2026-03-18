@@ -1,741 +1,604 @@
-# Rapport technique — Puls Events RAG
+# Rapport technique - Puls Events RAG
 
-## 1. Résumé exécutif
+## 1. Objectifs du projet
 
-Ce projet consiste à concevoir un **POC (Proof of Concept)** de système **RAG (Retrieval-Augmented Generation)** pour la recommandation d'événements culturels.  
-L'objectif métier est de démontrer qu'une plateforme telle que **Puls-Events** peut intégrer un assistant capable de répondre à des questions utilisateurs en s'appuyant sur une base d'évC�nements structurée, vectorisée et interrogeable sémantiquement.
+### Contexte
 
-Le système final combine :
+Puls-Events souhaite tester un assistant intelligent capable de repondre a des questions en langage naturel sur des evenements culturels. Le POC doit montrer qu'une plateforme de recommandation peut s'appuyer sur un systeme RAG pour interroger un corpus d'evenements et retourner une reponse formulee naturellement.
 
-- une ingestion configurable de données d'événements ;
-- un pipeline de préparation et de transformation documentaire ;
-- un index vectoriel **FAISS** ;
-- une chaîne **LangChain** ;
-- des modèles **Mistral** pour les embeddings et la génération ;
-- une API **FastAPI** ;
-- une stratégie d'évaluation automatisée ;
-- une exécution locale, scriptable et conteneurisée.
+### Problematique
 
-Le projet a été construit pour répondre aux attentes de la mission OpenClassrooms **Concevez et déployez un système RAG**.
+Une liste brute d'evenements ou un moteur de recherche classique ne repond pas toujours bien a des questions libres du type :
 
----
+- Quels evenements musicaux ont lieu a Montpellier ?
+- Y a-t-il des evenements gratuits ?
+- Quels evenements sont adaptes aux enfants ?
 
-## 2. Contexte et besoin métier
+Un systeme RAG repond a ce besoin en combinant :
 
-L'entreprise fictive **Puls-Events** souhaite tester un chatbot capable de répondre  à des questions sur des évC�nements culturels à venir ou récents.
+- une recherche semantique dans un corpus vectorise ;
+- une generation de reponse naturelle fondee sur les documents retrouves ;
+- une exposition simple via API pour les equipes produit et marketing.
 
-Exemples de besoins métier :
+### Objectif du POC
 
-- recommander des événements pertinents en fonction d'une requête libre ;
-- résumer rapidement l'offre culturelle locale ;
-- fournir une réponse formulée naturellement, sans obliger l'utilisateur à parcourir une liste brute d'événements ;
-- exposer une API exploitable par des équipes produit ou marketing.
+Le POC vise a demontrer :
 
-Le POC doit donc démontrer :
+- la faisabilite technique d'un systeme RAG complet ;
+- la pertinence metier des reponses generees ;
+- la possibilite de reconstruire l'index vectoriel a partir des donnees ;
+- la capacite a evaluer automatiquement le systeme ;
+- la possibilite d'exposer le systeme via une API REST reutilisable.
 
-- la **faisabilité technique** ;
-- la **pertinence fonctionnelle** ;
-- la **capacité dévaluation** ;
-- la **facilité d'éntégration** via API.
+### Perimetre retenu
 
----
+Le corpus est construit a partir du dataset public OpenDataSoft `evenements-publics-openagenda`.
 
-### 3. Périmètre retenu
+Perimetre principal utilise pendant le developpement :
 
-Le cahier des charges autorise un choix libre de zone géographique, à condition de conserver un périmètre cohérent et des événements récents ou à venir.
+- localisation : `city = Montpellier`
+- langue : `fr`
+- fuseau : `Europe/Paris`
+- mode temporel : `rolling`
+- fenetre temporelle : `365` jours
 
-Le périmètre retenu pour le développement principal est :
+Ce choix permet de conserver un corpus de taille raisonnable pour un POC local tout en gardant une diversite suffisante d'evenements.
 
-- **Ville** : Montpellier
-- **Mode temporel** : `rolling`
-- **Fenêtre temporelle** : 365 jours
+## 2. Architecture du systeme
 
-Ce choix a été motivé par un compromis entre :
+### Schema global
 
-- richesse suffisante du corpus ;
-- temps de traitement raisonnable ;
-- démonstration claire du système ;
-- coût d'évaluation limité.
-
-Lors des essais, un filtrage plus étroit ou au contraire trop large s'est révélé moins adapté au format POC. Le corpus final de travail contient environ **688 évC�nements**, ce qui reste maniable tout en fournissant une diversité utile.
-
----
-
-## 4. Source de données et justification
-
-### 4.1. Source utilisée
-
-Le projet s'appuie sur le dataset public OpenDataSoft :
-
-- **Nom** : `evenements-publics-openagenda`
-- **Endpoint** : `/api/explore/v2.1/catalog/datasets/evenements-publics-openagenda/records`
-
-### 4.2. Justification du choix
-
-L'énoncé mentionne OpenAgenda, mais les ressources du projet fournissent explicitement le dataset OpenDataSoft exposant ces événements.  
-Le choix d'OpenDataSoft a été retenu pour les raisons suivantes :
-
-- accès public direct ;
-- mise en öuvre reproductible ;
-- absence de dépendance à une clé OpenAgenda dédéeé ;
-- meilleure conformité pratique.
-
-gCe choix reste aligné avec le besoin métier : exploiter des évC�nements publics issus de l'écosystème OpenAgenda pour construire un assistant de recommandation.
-
----
-
-## 5. Schéma UML / architecture
-
-## Schéma UML simplifié
-
-``mermaid
+```mermaid
 flowchart TD
-    A[OpenDataSoft events dataset] --> B[build_dataset.py]
-    B --> C[data/raw/events.json]
-    C --> D[build_index.py]
-    D --> E[Chunking]
-    E --> F[Mistral Embeddings]
-    F --> G[FAISS Index]
-    G --> H[Retriever]
-    H --> I[LangChain RAG Service]
-    I --> J[FastAPI /ask]
-    D --> K[FastAPI /rebuild]
-    I --> L[evaluate_rag.py]
-    I --> M[evaluate_ragas.py]
+
+    subgraph Data
+        A[OpenDataSoft API]
+        B[build_dataset.py]
+        C[data/raw/events.json]
+        A --> B --> C
+    end
+
+    subgraph Indexing
+        D[build_index.py]
+        E[LangChain Documents]
+        F[Chunking]
+        G[Mistral Embeddings]
+        H[FAISS Index]
+        C --> D --> E --> F --> G --> H
+    end
+
+    subgraph RAG
+        I[Retriever]
+        J[Prompt Template]
+        K[ChatMistralAI]
+        H --> I --> J --> K
+    end
+
+    subgraph API
+        L[/ask endpoint]
+        M[/rebuild endpoint]
+        K --> L
+        D --> M
+    end
+
+    subgraph Evaluation
+        N[evaluate_rag.py]
+        O[evaluate_ragas.py]
+        L --> N
+        L --> O
+    end
 ```
 
-### Description des composants
+### Role des composants
 
-- **OpenDataSoft client** : récupàre les évC�nements via l'API REST publique
-- **Preprocessing** : nettoie é*reformate les données en documents textuels
-- **Chunking** : segmente les documents pour la vectorisation
-- **Embeddings Mistral** : transforme les chunks en vecteurs sémantiques
-- **FAISS** : stocke les vecteurs et permet la recherche par similarit�
-- **Retriever** : récupère les chunks les plus proches d'une question
-- **Service RAG** : construit le contexte et interroge le modèle de génération
-- **FastAPI** : expose les endpoints métier
-- **Scripts dévaluation** : mesurent la qualité du système
-- **Docker / CI** : assurent la reproductibilité et l'automatisation
+- OpenDataSoft / OpenAgenda : source de donnees d'evenements publics.
+- Ingestion : recupere les evenements selon les filtres geographiques et temporels.
+- Pretraitement : nettoie les champs HTML et reconstruit un texte metier exploitable.
+- LangChain : orchestre documents, chunking, embeddings, vector store et modele de chat.
+- MistralAIEmbeddings : transforme chaque chunk en vecteur semantique.
+- FAISS : stocke les vecteurs et permet la recherche de similarite.
+- Retriever : retrouve les `top_k` chunks les plus proches de la requete.
+- ChatMistralAI : genere la reponse finale a partir du contexte retrouve.
+- FastAPI : expose les endpoints metier et la documentation Swagger.
+- Scripts d'evaluation : mesurent la qualite du systeme.
 
----
-
-## 6. Environnement technique
-
-### Langage et runtime
+### Technologies utilisees
 
 - Python 3.12
-
-### Bibliothèques principales
-
-- FastAPI
-- Uvicorn
+- FastAPI + Uvicorn
 - LangChain
-- langchain-community
 - langchain-mistralai
+- langchain-community
 - langchain-text-splitters
-- faiss-cpu
+- FAISS CPU
+- httpx
 - pydantic-settings
 - structlog
-- httpx
-
-### Outils de qualité
-
-- uv
 - pytest
-- Ruff
-- Bandit
-- pre-commit
+- ragas
+- Docker
 - GitHub Actions
 
-### Outils dévaluation
+## 3. Preparation et vectorisation des donnees
 
-- ragas
-- datasets
+### Source de donnees
 
-### Déploiement
+Le projet utilise l'endpoint public OpenDataSoft expose pour le dataset OpenAgenda :
 
-- Docker
+- dataset : `evenements-publics-openagenda`
+- endpoint : `/api/explore/v2.1/catalog/datasets/evenements-publics-openagenda/records`
 
----
+Parametres de filtrage utilises :
 
-### 7. Organisation du dépôt
+- `location_field` : `city`, `region` ou `department`
+- `location_value` : valeur cible, par exemple `Montpellier`
+- `date_window_mode` : `past`, `future` ou `rolling`
+- `date_window_days` : taille de la fenetre temporelle
+- `lang` et `timezone`
 
-Le dépôt a été structuré de manière à séparer clairement :
+Le mode `rolling` est implemente comme une borne inferieure glissante sur `date_window_days`, sans borne superieure fixe.
 
-- la logique métier ;
-- les scripts d'exécution ;
-- les tests ;
-- les données ;
-- la documentation ;
-- les workflows CI.
+### Nettoyage et structuration
 
-Arborescence simplifiée :
-
- ```text
-src/puls_events_rag/
-├─ api/
-├─ evaluation/
-“─ ingestion/
-“─ rag/
-“─ config.py
-├─ logger.py
-
-scripts/
-├─ build_dataset.py
-├─ build_index.py
-├— evaluate_rag.py
-├─ evaluate_ragas.py
-├— api_test.py
-├─ run_local.py
-
-tests/
-├─ unit/
-“─ integration/
-```
-
-Cette structure permet à un évaluateur ou collègue de retrouver rapidement les différentes couches du système.
-
----
-
-## 8. Gestion de configuration
-
-La configuration est centralisée dans `config.py` via **Pydantic Settings** et un fichier `.env`.
-
-Les principaux paramètres configurables sont :
-
-- champ géographique (`city`, `region`, `department`)
-- valeur géographique
-- langue
-- fuseau horaire
-- mode temporel (`past` ou `future` ou `rolling`)
-- fênêtre en jours
-- batch size d'ingestion
-- limite max de corpus
-- modèle d'embedding
-- modèle de génération
-- paramètres de chunking
-- nom de l'index FAISS
-- token de protection de `/rebuild`
-
-Ce choix rend le système :
-
-- flexible ;
-- relançable ;
-- facilement démontrable avec plusieurs périmètres.
-
----
-
-## 9. Ingestion des données
-
-### 9.1. Objectif
-
-Récupérer les événements de manière fiable, filtrée et relançable.
-
-### 9.2. Mécanisme
-
-Le client OpenDataSoft construit une clause `where` dynamique combinant :
-
-- le filtre géographique ;
-- la contrainte temporelle.
-
-Exemple de logique :
-
-- `location_city = 'Montpellier'`
-- `firstdate_begin >= date'2025-03-11'`
-- `firstdate_begin <= date'2026-03-11'`
-
-L'ingestion se fait par pagination (`limit`, `offset`) avec accumulation de tous les résultats jusqu'à :
-
-- épisement des pages
-- ou atteinte de `ingestion_max_records`
-
-### 9.3. Contrôles
-
-Des tests unitaires vérifient :
-
-- la construction de la clause `where`
-- le nettoyage HTML
-- le mapping d'un événement vers un document RAG
-
----
-
-### 10. Prétraitement des données
-
-Chaque évC�nement récupáré st transformé en document textuel structuré contenant notamment :
+Chaque evenement est transforme en document textuel contenant :
 
 - titre
 - description courte
-- description longue nettoyée
+- description longue nettoyee
 - conditions
 - ville
 - lieu
 - adresse
-- date
-- mots-clés
+- date de debut
+- mots-cles
 
-Le nettoyage HTML est volontairement simple mais robuste pour le POC :
+Methodes appliquees :
 
-- suppression des balises
+- suppression des balises HTML
 - normalisation des espaces
-- décodage des entités HTML
+- decodage des entites HTML
+- remplacement des valeurs manquantes par des chaines vides si necessaire
 
-Le résultat est sauvegardé dans `data/raw/events.json`.
+Ce choix permet d'obtenir un texte plus homogene pour l'embedding et le retrieval.
 
----
+### Chunking
 
-### 11. Chunking
-
-### 11.1. Pourquoi chunker ?
-
-Les descriptions d'événements peuvent être longues et hétérogènes.  
-Le chunking permet :
-
-- une vectorisation plus stable ;
-- une meilleure granularité en retrieval ;
-- une limitation de la taille des contextes transmis au LLM.
-
-### 11.2. Implémentation retenue
-
-Le projet utilise `RecursiveCharacterTextSplitter` avec des séparateurs hiérarchiques :
-
-- `\n\n`
-- `\n`
-- `. `
-- ` `
-- `""`
-
-Paramètres par défaut :
+Le projet utilise `RecursiveCharacterTextSplitter` avec :
 
 - `chunk_size = 800`
 - `chunk_overlap = 120`
+- separateurs : `\n\n`, `\n`, `. `, ` `, `""`
 
-### 11.3. Alternatives possibles
+Justification :
 
-D'autres strat�gies auraient pu  être envisagées :
+- les descriptions d'evenements peuvent etre longues et heterogenes ;
+- un chunking fin ameliore la granularite du retrieval ;
+- l'overlap limite la perte d'information a la frontiere entre deux chunks ;
+- le splitter recursif est simple, reproductible et bien adapte a un POC.
 
-- chunking sémantique ;
-- découpage par sections de métadonnées ;
-- phrase splitting ;
-- sliding window plus dense.
+Autres strategies envisageables :
 
-Pour un POC, le splitter récursif offre un trés bon compromis entre simplicité, lisibilité et efficacité.
+- chunking semantique ;
+- chunking guide par la structure metier ;
+- chunking par tokens ;
+- parent-child retrieval.
 
----
+Le choix retenu privilegie la simplicite de mise en oeuvre et la lisibilite du pipeline.
 
-## 12. Embeddings
+### Embedding
 
-### 12.1. Choix du modèle
-
-Le projet utilise **MistralAIEmbeddings** avec le modèle :
+Le projet utilise `MistralAIEmbeddings` avec le modele :
 
 - `mistral-embed`
 
-### 12.2. Justification
+Points importants :
 
-Ce choix a été retenu pour :
+- `MistralAIEmbeddings` est un wrapper LangChain pour l'API Mistral ;
+- les chunks sont convertis en vecteurs denses de nombres reels ;
+- les vecteurs sont ensuite indexes dans FAISS ;
+- la requete utilisateur est encodee avec le meme modele pour rester dans le meme espace vectoriel.
 
-- la cohérence avec les consignes du projet ;
-- l'homégénéité de la stack Mistral ;
-- l'éntégration native avec LangChain ;
-- la simplicité d'éxploitation.
+Sur la dimension exacte des vecteurs, la source de verite est la documentation Mistral. Le code du repo ne fixe pas explicitement cette dimension : elle est geree par le service d'embedding du fournisseur.
 
-### 12.3. Limites
-L'usage d'un service externe implique :
+La logique de batch est egalement delegatee au wrapper et a la bibliotheque sous-jacente. Pour ce POC, aucun tuning de batch n'a ete ajoute au niveau applicatif.
 
-- dépendance réseau ;
-- dépendance à une clé API ;
-- coût éventuel ;
-- variabilité potentielle des performances selon l'API distante.
+## 4. Choix du modele NLP
 
-This limite est explicitement assumée dans le cadre du POC.
+### Modeles selectionnes
 
----
+Le systeme utilise deux composants Mistral distincts :
 
-## 13. Base vectorielle FAISS
+- embeddings : `mistral-embed`
+- generation : `mistral-small-latest`
 
-### 13.1. Rôle
+### Pourquoi ces modeles
 
-FAISS stocke les vecteurs d'embeddings et permet la recherche sémantique rapide des chunks les plus proches.
+Ces choix sont defensables pour un POC car ils offrent :
 
-### 13.2. Choix de FAISS
+- une stack coherente chez un meme fournisseur ;
+- une integration directe avec LangChain ;
+- un cout et une complexite d'integration raisonnables ;
+- une bonne adequation au besoin de retrieval + generation.
 
-FAISS a été choisi car :
+### Prompting
 
-- il est largement utilisé ;
-- il s'intègre facilement avec LangChain ;
-- `faiss-cpu` est portable ;
-- il est très adapté à un POC local.
+Le prompting repose sur deux niveaux :
 
-### 13.3. Persistance
+- un prompt systeme rappelant de ne repondre qu'a partir du contexte ;
+- un prompt utilisateur contenant la question et les chunks recuperes.
 
-L'index est sauvegardé localement dans :
+Contraintes explicites du prompt :
 
-- `index.faiss`
-- `index.pkl`
-- `manifest.json`
+- repondre uniquement a partir du contexte fourni ;
+- ne pas inventer d'information absente ;
+- citer les elements utiles : titre, ville, date, lieu, conditions ;
+- repondre en francais.
 
-Le `manifest.json` contient notamment :
+### Limites
 
-- le nom de l'index
-- le modèle d'embedding
-- le nombre de documents
-- le nombre de chunks
-- les paramètres de chunking
+- dependance a une API distante ;
+- cout potentiel des appels embeddings et generation ;
+- variabilite possible des resultats selon le modele et le corpus ;
+- absence de memoire conversationnelle dans ce POC.
 
----
+## 5. Construction de la base vectorielle
 
-## 14. Retrieval
+### FAISS utilise
 
-### 14.1. Principe
+Le projet utilise le vector store FAISS expose via LangChain avec `FAISS.from_documents(...)`.
 
-Lorsqu'une question utilisateur est reçue, le système :
+Le choix est justifie par :
 
-1. charge l'index FAISS
-2. transforme la question en embedding
-3. récupàre les `k` documents les plus proches par similarité
+- une excellente simplicite pour un POC local ;
+- une bonne portabilite avec `faiss-cpu` ;
+- une integration directe avec LangChain ;
+- une performance suffisante sur un corpus de taille moderee.
 
-### 14.2. Paramétrage
+### Strategie d'indexation
 
-- `retrieval_k` = 5 par défaut
+Le pipeline d'indexation est :
 
-Ce Choix permet d'obtenir :
+1. chargement des documents normalises ;
+2. conversion en `Document` LangChain ;
+3. chunking ;
+4. calcul des embeddings des chunks ;
+5. construction de l'index FAISS ;
+6. sauvegarde locale.
 
-- assez de contexte pour répondre ;
-- sans surcharger inutilement le prompt.
+Le repo ne configure pas d'algorithme FAISS avance de type IVF, HNSW ou PQ. Pour un corpus de quelques centaines d'evenements et un POC local, ce choix est acceptable car il privilegie la fiabilite, la simplicite et la reproductibilite. Si le corpus devait croitre fortement, une strategie ANN plus explicite serait a etudier.
 
-### 14.3. Limites
+### Persistance
 
-Le système ne comporte pas de **reranker** dédi。
+L'index est sauvegarde localement dans `data/faiss/events_index/` avec :
 
-Le point a été laissé en amélioration potentielle, car il nétait pas requis for the mission et aurait ajouté de la complexité à un POC dont l'objectif principal était la démonstration de faisabilité.
+- `index.faiss` : structure vectorielle FAISS ;
+- `index.pkl` : donnees serialisees associees au vector store LangChain ;
+- `manifest.json` : metadonnees de construction.
 
----
+Le manifeste conserve notamment :
 
-## 15. Génération de réponse
+- nom de l'index ;
+- modele d'embedding ;
+- `chunk_size` ;
+- `chunk_overlap` ;
+- nombre de documents sources ;
+- nombre de chunks indexes.
 
-### 15.1. Modèle
+### Metadonnees associees
 
-Le projet utilise **ChatMistralAI** avec :
-
-- `mistral-small-latest`
-
-### 15.2. Prompting
-
-Le prompt système impose plusieurs contraintes :
-
-- répondre uniquement à partir du contexte fourni ;
-- ne pas inventer d'information ;
-- restituer les informations utiles ;
-- répondre en français ;
-- signaler explicitement l'absence d'information si nécessaire.
-
-Le contexte est construit à partir des chunks récupárés, enrichis de métadonnés :
-
-- titre
-- ville
-- date
-- lieu
-- adresse
-- conditions
-
-### 15.3. Sources
-
-La réponse renvoie également une liste structurée de sources :
+Pour chaque chunk, les metadonnees utiles conservees sont :
 
 - `uid`
 - `title`
 - `city`
+- `location_name`
+- `location_address`
 - `date`
-- `score` (actuellement non utilisé)
+- `conditions`
+- `keywords`
+- `canonicalurl`
 
-Les doublons sont filtrés au niveau du service.
+Ces metadonnees servent a enrichir le contexte et les sources retournees a l'utilisateur.
 
----
+## 6. API et endpoints exposes
 
-## 16. API REST
+### Framework
 
-LAPI a ét� implémentée avec **FastAPI**.
+L'API est implementee avec FastAPI.
 
-### Endpoints disponibles
-#### `GET /health`
+Justification :
 
-Permet de vérifier que le service est disponible.
+- validation automatique via Pydantic ;
+- documentation interactive Swagger ;
+- code concis et lisible ;
+- integration simple avec un service Python deja structure.
 
-#### `GET /metadata`
+### Endpoints
 
-Expose la configuration métier du corpus courant.
+- `GET /health` : verifie que l'API repond.
+- `GET /metadata` : expose les parametres metier du corpus actif.
+- `POST /ask` : prend une question et retourne une reponse RAG + sources.
+- `POST /rebuild` : reconstruit l'index vectoriel apres verification d'un token.
 
-#### `POST /ask`
+### Format des requetes et reponses
 
-Entrée :
+Exemple de requete `POST /ask` :
 
-- `question`
-- `top_k`
+```json
+{
+  "question": "Quels evenements gratuits ont lieu a Montpellier ?",
+  "top_k": 5
+}
+```
 
-Sortie :
+Exemple de reponse :
 
-- `answer`
-- `sources`
+```json
+{
+  "answer": "...",
+  "sources": [
+    {
+      "uid": "123",
+      "title": "Nom de l'evenement",
+      "city": "Montpellier",
+      "date": "2025-09-20T10:00:00+02:00",
+      "score": null
+    }
+  ]
+}
+```
 
-#### `POST /rebuild`
+### Exemples d'appel
 
-Reconstruit l'index vectoriel.  
-Cet endpoint est protégé par un token transmis dans le corps de la requête.
+```bash
+curl -X POST "http://127.0.0.1:8000/ask" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Quels evenements musicaux ont lieu a Montpellier ?","top_k":5}'
+```
 
-### Justification
+```bash
+curl -X POST "http://127.0.0.1:8000/rebuild" \
+  -H "Content-Type: application/json" \
+  -d '{"token":"change_me_local_token"}'
+```
 
-FastAPI a été retenu car il fournit :
+### Gestion des erreurs et limitations
 
-- validation automatique des schémas ;
-- documentation Swagger ;
-- simplicité de mise en Œuvre ;
-- bonne lisibilit� pour un POC.
+L'API gere notamment :
 
----
+- questions invalides via validation Pydantic ;
+- index absent via erreur 503 ou 404 selon le cas ;
+- token de rebuild manquant ou invalide ;
+- erreurs inattendues encapsulees en `HTTPException`.
 
-## 17. Qualité logicielle et tests
+L'endpoint `/rebuild` est protege par un token applicatif. C'est suffisant pour un POC local, mais insuffisant pour une exposition publique reelle. Un durcissement ulterieur devrait ajouter authentification, autorisation et rate limiting.
 
-### 17.1. Tests unitaires
+### Tests API
 
-Des tests ont été ajoutés pour valider :
+Le repo contient :
 
-- la clause de filtrage OpenDataSoft
-- le nettoyage HTML
-- la transformation évC�nement → document
-- la création de documents LangChain
-- le chunking
-- certaines fonctions d'évaluation
-- les réponses API de base
+- des tests unitaires / integration sur `/health`, `/metadata`, `/ask` et `/rebuild` ;
+- un script `scripts/api_test.py` pour un test fonctionnel rapide ;
+- la documentation Swagger disponible sur `/docs`.
 
-### 17.2. Tests d'intégration
+## 7. Evaluation du systeme
 
-Des tests d'éntégration vérifient notamment :
+### Jeu de test annote
 
-- `/health`
-- `/metadata`
-- la validation de `/ask`
+Le repo contient un jeu de test annote dans `data/eval/reference_qa.json`.
 
-### 17.3. Script de test API
+Contenu actuel :
 
-Un script `scripts/api_test.py` permet de tester rapidement :
-
-- `/health`
-- `/metadata`
-- `/ask`
-
-Ce script est particulièrement utile pour la démonstration.
-
----
-
-## 18. Strat�gie d'évaluation
-
-La qualité du système a été évaluée selon deux approches complémentaires.
-
-### 18.1. Évaluation heuristique
-
-Un jeu de test annoté simple (`reference_qa.json`) a été constitué, avec pour chaque question :
-
-- une réponse de référence ;
-- des mots-clés attendus ;
+- 5 questions ;
+- une reponse de reference descriptive par question ;
+- une liste de mots-cles attendus ;
 - une ville attendue.
+
+Methode d'annotation :
+
+- selection manuelle de cas d'usage metier simples ;
+- formulation d'une reference attendue en langage naturel ;
+- ajout de mots-cles servant a l'evaluation heuristique.
+
+Limite importante : ce jeu est utile pour un POC et la non-regression, mais il reste de taille reduite et les references sont plus proches d'un guide de reponse attendue que d'une verite terrain exhaustivement annotee.
+
+### Evaluation heuristique
 
 Le script `evaluate_rag.py` mesure :
 
-- la couverture de mots-clés ;
-- la cohérence géographique des sources ;
-- un label global :
-  - `correct`
-  - `partially_correct`
-  - `incorrect`
+- `keyword_coverage` : fraction de mots-cles attendus presents dans la reponse ;
+- `city_match` : presence d'au moins une source dans la ville attendue ;
+- un label global : `correct`, `partially_correct`, `incorrect`.
 
-#### Intérêt
+Regle appliquee :
 
-- relançable rapidement ;
-- simple à interpréter ;
-- adapté à la non-régression.
+- `correct` si `keyword_coverage >= 0.66` et `city_match = true`
+- `partially_correct` si au moins un des deux criteres est partiellement satisfait
+- `incorrect` sinon
 
-#### Limite
+Resultats heuristiques actuellement stockes :
 
-- assez indulgent ;
-- sensible au choix des mots-clés ;
-- peu fin sur la qualité réelle du langage produit.
+- total : 5 cas
+- correct : 5
+- partially_correct : 0
+- incorrect : 0
+- avg_keyword_coverage : 1.0
 
-### 18.2. Évaluation Ragas
+Interpretation : ces resultats montrent que le pipeline fonctionne bien sur le petit jeu de test defini, mais ils ne prouvent pas une robustesse generale. La metrique est indulgente et tres dependante des mots-cles choisis.
 
-Le script `evaluate_ragas.py` évalue le système avec :
+### Evaluation Ragas
+
+Le script `evaluate_ragas.py` construit un dataset a partir :
+
+- des questions du jeu annote ;
+- des reponses generees par le systeme ;
+- des contextes recuperes ;
+- des references humaines du fichier annote.
+
+Les metriques configurees sont :
 
 - `faithfulness`
 - `answer_relevancy`
 - `context_precision`
 
-L'évaluation Ragas est configurée avec :
+Le repo integre donc bien Ragas dans un pipeline automatisable. En revanche, les derniers resultats sauvegardes dans `ragas_results.json` contiennent actuellement des valeurs `NaN`. Cela signifie que l'integration est en place, mais que l'exploitation quantitative des resultats Ragas n'est pas encore suffisamment stabilisee pour soutenir une conclusion forte. Ce point doit etre presente comme une limite honnete du POC, pas comme un succes deja acquis.
 
-- **ChatMistralAI** comme LLM d'évaluation ;
-- **MistralAIEmbeddings** pour les embeddings.
+### Analyse qualitative
 
-Se oprojet reste donc **full Mistral**, sans dépendance à OpenAI.
+Exemples de points positifs observes dans `evaluation_results.json` :
 
-### 18.3. Interprétation des résultats
+- les reponses mentionnent souvent titre, date, lieu et conditions ;
+- le systeme repond de maniere structuree et lisible ;
+- les reponses restent en general ancrees dans le contexte fourni.
 
-Les scores obtenus sont bons sur le jeu de test construit, ce qui montre :
+Erreurs ou limites frequentes observees :
 
-- que le pipeline fonctionne ;
-- que le contexte récupéré est généralement cohérent ;
-- que les réponses restent globalement alignées avec les données.
+- certaines sources retournees sont peu pertinentes par rapport a la question ;
+- quelques titres peuvent etre vides dans les sources ;
+- l'absence de reranker peut laisser passer des chunks moins utiles ;
+- l'evaluation heuristique surestime parfois la qualite reelle.
 
-Cependant, ces résultats ne doivent pas être surinterprétés.  
-Le jeu de test est encore réduit, et l'évaluation reste limitée par :
+## 8. Recommandations et perspectives
 
-- la taille du benchmark ;
-- l'absence d'annotation humaine multi-niveaux ;
-- l'absence de cas adversariaux plus durs.
+### Ce qui fonctionne bien
 
----
+- pipeline RAG complet et relancable ;
+- separation claire entre ingestion, indexation, retrieval, generation et API ;
+- reconstruction de l'index a la demande ;
+- evaluation heuristique et integration Ragas presentes ;
+- CI et conteneurisation disponibles.
 
-## 19. CI / automatisation
+### Limites du POC
 
-Deux workflows GitHub Actions ont asté ajoutés :
-
-### `ci.yml`
-
-Exécute :
-
-- `uv sync --all-groups`
-- `ruff check`
-- `ruff format --check`
-- `bandit`
-- `pytest`
-
-### `eval.yml`
-
-Permet de relancer à la demande :
-
-- la reconstruction du dataset ;
-- la reconstruction de l'index ;
-- l'évaluation heuristique ;
-- l'évaluation Ragas
-
-Cette automatisation répond à l'exigence de relançabilité du projet.
-
----
-
-### 20. Script de lancement local
-
-Le script `run_local.py` permet d'enchaîner automatiquement :
-
-1. `build_dataset.py`
-2. `build_index.py`
-3. `evaluate_rag.py`
-4. lancement de l'API
-
-Ce script facilite :
-
-- la reproduction complète ;
-- la démonstration ;
-- la vérification rapide du pipeline de bout en bout.
-
----
-
-## 21. Déploiement local avec Docker
-
-Un `Dockerfile` est fourni afin de construire une image locale de l'API.
-
-### Intérêt
-
-- reproductibilité ;
-- démonstration locale ;
-- préparation à un déploiement élargi.
-
-### Limite
-
-Même conteneurisé, le système dépend toujours de l'API Mistral pour :
-
-- les embeddings ;
-- la génération ;
-- certaines évaluations.
-
-Il n'est donc pas entièrement autonome hors ligne.
-
----
-
-## 22. Sécurité et robustesse
-
-### Mesures prises
-
-- clé API stockée dans `.env`
-- `.env` ignoré par Git
-- validation Pydantic des requêtes
-- endpoint `/rebuild` protégé par token
-- analyse Bandit
-- tests automatisés
-- gestion structurée heure logs
-
-### Limites
-Le projet reste un POC local.  
-Si une exposition publique devait être envisagée, il faudrait renforcer :
-
-- authentification / autorisation ;
-- gestion plus fine des erreurs ;
-- rotation des secrets ;
-- supervision ;
-- politiques de rate limiting.
-
----
-
-## 23. Forces du projet
-
-- pipeline complet de bout en bout ;
-- architecture claire ;
-- stack cohérente avec le cahier des charges ;
-- séparation logique métier / API ;
-- scripts relançables ;
-- évaluation présente à deux niveaux ;
-- documentation reproductible ;
-- conteneurisation disponible.
-
----
-
-## 24. Limites du projet
-
-- jeu de test encore modeste ;
+- jeu de test annote encore modeste ;
+- pas de benchmark de performance formel (latence, debit, memoire) ;
 - pas de reranking ;
-- pas de mémoire conversationnelle ;
-- dépendance réseau à Mistral ;
-- èvaluation heuristique encore simplifiée ;
-- pas de front dédié ;
-- pas de déploiement cloud finalisé.
+- pas d'historique conversationnel ;
+- dependance a l'API Mistral ;
+- exploitation Ragas a consolider car les derniers resultats sauvegardes sont `NaN`.
 
----
+### Ameliorations possibles
 
-## 25. Perspectives d'amélioration
-- enrichir le benchmark annoté ;
-- ajouter une évaluation humaine détailée;
+- enrichir fortement le benchmark annote ;
+- ajouter des cas negatifs et ambigus ;
 - introduire un reranker ;
-- améliorer le scoring et la citation des sources ;
-- filtrer plus finement par catégories d'événements ;
-- intégrer une interface utilisateur ;
-- renforcer la supervision et l'observabilité ;
-- préparer un déploiement managé.
+- ajouter des scores de retrieval exploitables dans les sources ;
+- completer l'evaluation par de la revue humaine ;
+- ajouter un benchmark de performance simple ;
+- etudier un filtrage metadonnees + retrieval hybride ;
+- preparer une cible de deploiement plus robuste.
 
----
+### Passage en production
 
-### 26. Conclusion
+Pour un deploiement elargi, il faudrait au minimum :
 
-Le projet aboutit è un **POC RAG cohérent, fonctionnel et démontrable**, répondant aux principales attentes du cahier des charges :
+- une authentification forte ;
+- une gestion des secrets plus mature ;
+- un monitoring ;
+- une politique de retry et de timeout mieux instrumentee ;
+- un stockage / indexation plus industrialises si le volume augmente.
 
-- répération de données d'événements ;
-- préparation documentaire ;
+## 9. Organisation du depot GitHub
+
+Arborescence fonctionnelle :
+
+```text
+src/puls_events_rag/
+  api/          -> endpoints FastAPI et schemas
+  evaluation/   -> evaluation heuristique et Ragas
+  ingestion/    -> client OpenDataSoft et preprocessing
+  rag/          -> indexer, retriever, prompts, service RAG
+  config.py     -> configuration centralisee
+  logger.py     -> logs structurees
+
+scripts/
+  build_dataset.py
+  build_index.py
+  evaluate_rag.py
+  evaluate_ragas.py
+  api_test.py
+  run_local.py
+
+data/
+  raw/          -> dataset normalise
+  eval/         -> jeu annote et resultats d'evaluation
+  faiss/        -> index vectoriel persiste
+
+tests/
+  unit/
+  integration/
+
+docs/
+  rapport_technique.md
+```
+
+Le depot est organise de facon lisible. Un evaluateur peut identifier rapidement les scripts, les tests, l'API, les donnees et la documentation.
+
+## 10. Annexes
+
+### Extrait du jeu de test annote
+
+```json
+{
+  "id": "q2",
+  "question": "Y a-t-il des evenements gratuits a Montpellier ?",
+  "reference_answer": "La reponse doit mentionner des evenements dont les conditions indiquent la gratuite, s'ils existent dans le corpus.",
+  "expected_keywords": ["gratuit", "Montpellier"],
+  "expected_city": "Montpellier"
+}
+```
+
+### Prompt systeme
+
+```text
+Tu es un assistant specialise dans les evenements culturels publics en France.
+Ta mission : repondre uniquement a partir du contexte fourni, rester factuel, clair et utile,
+ne jamais inventer d'information absente du contexte.
+```
+
+### Exemple de log metier
+
+```text
+indexer.raw_documents_loaded
+indexer.documents_split
+indexer.embeddings_initialized
+indexer.faiss_built
+retriever.documents_retrieved
+rag.answer_generated
+```
+
+### Exemple de reponse JSON
+
+```json
+{
+  "answer": "Voici les evenements gratuits a Montpellier identifies dans le contexte fourni : ...",
+  "sources": [
+    {
+      "uid": "94319571",
+      "title": "Conferences, expositions et dedicaces de livres au Cercle Culturel Languedocien !",
+      "city": "Montpellier",
+      "date": "2025-09-20T10:00:00+02:00",
+      "score": null
+    }
+  ]
+}
+```
+
+## Conclusion
+
+Le projet livre un POC RAG fonctionnel, relancable et demonstrable, conforme a l'esprit de la mission Puls-Events :
+
+- ingestion de donnees d'evenements ;
+- preparation documentaire ;
 - chunking ;
-- embeddings ;
-- indexation vectorielle FAISS ;
-- retrieval ;
-- génération ;
+- embeddings Mistral ;
+- indexation FAISS ;
+- retrieval semantique ;
+- generation de reponse ;
 - API REST ;
 - endpoint de reconstruction ;
 - tests ;
-- évaluation ;
-- CI ;
-- lancement local ;
-- conteneurisation Docker.
+- evaluation automatisable ;
+- Docker et CI.
 
-Le système est suffisamment abouti pour être présenté en soutenance comme une preuve de faisabilité crédible, tout en laissant apparaét honnêtement les limites normales d'un POC et les pistes d'industrialisation futures.
+Le systeme est defendable en soutenance a condition de presenter honnetement ses limites actuelles : benchmark annote encore restreint, absence de mesures de performance formalisees et exploitation Ragas encore a consolider.
