@@ -28,7 +28,7 @@ Le corpus retenu pour le développement principal est configurable via variables
 
 - `location_field=city`
 - `location_value=Montpellier`
-- `date_window_mode=past`
+- `date_window_mode=rolling`
 - `date_window_days=365`
 
 Ce paramétrage produit un corpus d'environ **688 événements**, ce qui constitue une taille adaptée pour un POC démontrable, reproductible et raisonnable en coût/temps d'indexation.
@@ -190,7 +190,7 @@ PULS_EVENTS_LOCATION_VALUE=Montpellier
 PULS_EVENTS_LANG=fr
 PULS_EVENTS_TIMEZONE=Europe/Paris
 
-PULS_EVENTS_DATE_WINDOW_MODE=past
+PULS_EVENTS_DATE_WINDOW_MODE=rolling
 PULS_EVENTS_DATE_WINDOW_DAYS=365
 
 PULS_EVENTS_INGESTION_BATCH_SIZE=100

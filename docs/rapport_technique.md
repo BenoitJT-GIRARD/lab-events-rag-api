@@ -3,7 +3,7 @@
 ## 1. Résumé exécutif
 
 Ce projet consiste à concevoir un **POC (Proof of Concept)** de système **RAG (Retrieval-Augmented Generation)** pour la recommandation d'événements culturels.  
-L'objectif métier est de démontrer qu'une plateforme telle que **Puls-Events** peut intégrer un assistant capable de répondre à des questions utilisateurs en s'appuyant sur une base d'évC�nements structurée, vectorisée et interrogeable sémantiquement.
+L'objectif métier est de démontrer qu'une plateforme telle que **Puls-Events** peut intégrer un assistant capable de répondre à des questions utilisateurs en s'appuyant sur une base d'évC�nements structurée, vectorisée et interrogeable sémantiquement.
 
 Le système final combine :
 
@@ -22,7 +22,7 @@ Le projet a été construit pour répondre aux attentes de la mission OpenClassr
 
 ## 2. Contexte et besoin métier
 
-L'entreprise fictive **Puls-Events** souhaite tester un chatbot capable de répondre  à des questions sur des évC�nements culturels à venir ou récents.
+L'entreprise fictive **Puls-Events** souhaite tester un chatbot capable de répondre  à des questions sur des évC�nements culturels à venir ou récents.
 
 Exemples de besoins métier :
 
@@ -47,7 +47,7 @@ Le cahier des charges autorise un choix libre de zone géographique, à conditio
 Le périmètre retenu pour le développement principal est :
 
 - **Ville** : Montpellier
-- **Mode temporel** : `past`
+- **Mode temporel** : `rolling`
 - **Fenêtre temporelle** : 365 jours
 
 Ce choix a été motivé par un compromis entre :
@@ -57,7 +57,7 @@ Ce choix a été motivé par un compromis entre :
 - démonstration claire du système ;
 - coût d'évaluation limité.
 
-Lors des essais, un filtrage plus étroit ou au contraire trop large s'est révélé moins adapté au format POC. Le corpus final de travail contient environ **688 évC�nements**, ce qui reste maniable tout en fournissant une diversité utile.
+Lors des essais, un filtrage plus étroit ou au contraire trop large s'est révélé moins adapté au format POC. Le corpus final de travail contient environ **688 évC�nements**, ce qui reste maniable tout en fournissant une diversité utile.
 
 ---
 
@@ -80,7 +80,7 @@ Le choix d'OpenDataSoft a été retenu pour les raisons suivantes :
 - absence de dépendance à une clé OpenAgenda dédéeé ;
 - meilleure conformité pratique.
 
-gCe choix reste aligné avec le besoin métier : exploiter des évC�nements publics issus de l'écosystème OpenAgenda pour construire un assistant de recommandation.
+gCe choix reste aligné avec le besoin métier : exploiter des évC�nements publics issus de l'écosystème OpenAgenda pour construire un assistant de recommandation.
 
 ---
 
@@ -106,11 +106,11 @@ flowchart TD
 
 ### Description des composants
 
-- **OpenDataSoft client** : récupàre les évC�nements via l'API REST publique
+- **OpenDataSoft client** : récupàre les évC�nements via l'API REST publique
 - **Preprocessing** : nettoie é*reformate les données en documents textuels
 - **Chunking** : segmente les documents pour la vectorisation
 - **Embeddings Mistral** : transforme les chunks en vecteurs sémantiques
-- **FAISS** : stocke les vecteurs et permet la recherche par similarit�
+- **FAISS** : stocke les vecteurs et permet la recherche par similarit�
 - **Retriever** : récupère les chunks les plus proches d'une question
 - **Service RAG** : construit le contexte et interroge le modèle de génération
 - **FastAPI** : expose les endpoints métier
@@ -207,7 +207,7 @@ Les principaux paramètres configurables sont :
 - valeur géographique
 - langue
 - fuseau horaire
-- mode temporel (`past` ou `future`)
+- mode temporel (`past` ou `future` ou `rolling`)
 - fênêtre en jours
 - batch size d'ingestion
 - limite max de corpus
@@ -261,7 +261,7 @@ Des tests unitaires vérifient :
 
 ### 10. Prétraitement des données
 
-Chaque évC�nement récupáré st transformé en document textuel structuré contenant notamment :
+Chaque évC�nement récupáré st transformé en document textuel structuré contenant notamment :
 
 - titre
 - description courte
@@ -311,7 +311,7 @@ Paramètres par défaut :
 
 ### 11.3. Alternatives possibles
 
-D'autres strat�gies auraient pu  être envisagées :
+D'autres strat�gies auraient pu  être envisagées :
 
 - chunking sémantique ;
 - découpage par sections de métadonnées ;
@@ -454,7 +454,7 @@ Les doublons sont filtrés au niveau du service.
 
 ## 16. API REST
 
-LAPI a ét� implémentée avec **FastAPI**.
+LAPI a ét� implémentée avec **FastAPI**.
 
 ### Endpoints disponibles
 #### `GET /health`
@@ -489,7 +489,7 @@ FastAPI a été retenu car il fournit :
 - validation automatique des schémas ;
 - documentation Swagger ;
 - simplicité de mise en Œuvre ;
-- bonne lisibilit� pour un POC.
+- bonne lisibilit� pour un POC.
 
 ---
 
@@ -501,7 +501,7 @@ Des tests ont été ajoutés pour valider :
 
 - la clause de filtrage OpenDataSoft
 - le nettoyage HTML
-- la transformation évC�nement → document
+- la transformation évC�nement → document
 - la création de documents LangChain
 - le chunking
 - certaines fonctions d'évaluation
@@ -527,7 +527,7 @@ Ce script est particulièrement utile pour la démonstration.
 
 ---
 
-## 18. Strat�gie d'évaluation
+## 18. Strat�gie d'évaluation
 
 La qualité du système a été évaluée selon deux approches complémentaires.
 
