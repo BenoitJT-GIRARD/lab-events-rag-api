@@ -16,8 +16,6 @@ L'objectif de ce projet est de démontrer la faisabilité technique d'un assista
 - une **API REST FastAPI** permettant de tester rapidement la solution ;
 - des **tests**, une **évaluation automatisée** et une **documentation de reproduction**.
 
-Ce projet a été réalisé dans le cadre du projet OpenClassrooms **« Concevez et déployez un système RAG »**.
-
 ---
 
 ## 2. Périmètre retenu

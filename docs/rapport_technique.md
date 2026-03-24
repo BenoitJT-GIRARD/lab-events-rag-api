@@ -640,4 +640,4 @@ Le projet livre un POC RAG fonctionnel, relancable et demonstrable, conforme a l
 - evaluation automatisable ;
 - Docker et CI.
 
-Le systeme est defendable en soutenance. Les resultats d'evaluation sont honnetes et coherents : 73 % de reponses correctes sur 30 cas equilibres (positifs, negatifs, ambigus), une faithfulness de 0.76 confirmant la fidelite au contexte, et une context precision de 0.575 qui identifie clairement le retrieval comme le maillon a ameliorer. Ces chiffres sont interpretables et orientent directement les pistes d'evolution.
+Les resultats d'evaluation sont honnetes et coherents : 73 % de reponses correctes sur 30 cas equilibres (positifs, negatifs, ambigus), une faithfulness de 0.76 confirmant la fidelite au contexte, et une context precision de 0.575 qui identifie clairement le retrieval comme le maillon a ameliorer. Ces chiffres sont interpretables et orientent directement les pistes d'evolution.
