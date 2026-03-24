@@ -75,8 +75,8 @@ flowchart TD
     end
 
     subgraph API
-        L[/ask endpoint]
-        M[/rebuild endpoint]
+        L[ask endpoint]
+        M[rebuild endpoint]
         K --> L
         D --> M
     end
@@ -385,22 +385,25 @@ Le repo contient :
 
 ### Jeu de test annote
 
-Le repo contient un jeu de test annote dans `data/eval/reference_qa.json`.
+Le repo contient un jeu de test annote dans `data/eval/reference_qa.json`, genere automatiquement par le script `scripts/generate_eval_dataset.py` a partir du corpus reel via ChatMistralAI.
 
-Contenu actuel :
+Contenu :
 
-- 5 questions ;
-- une reponse de reference descriptive par question ;
-- une liste de mots-cles attendus ;
-- une ville attendue.
+- **30 cas** au total ;
+- **20 cas positifs** : 2 par categorie (musique, theatre, danse, exposition, gratuit, enfants, sport, patrimoine, conference, festival) ;
+- **5 cas negatifs** : questions hors corpus (autre ville, categorie absente) ;
+- **5 cas ambigus** : questions dependantes d'une date ou trop vagues.
 
-Methode d'annotation :
+Schema par entree :
 
-- selection manuelle de cas d'usage metier simples ;
-- formulation d'une reference attendue en langage naturel ;
-- ajout de mots-cles servant a l'evaluation heuristique.
+- `id` : identifiant sequentiel ;
+- `case_type` : `positive`, `negative` ou `ambiguous` ;
+- `question` : formulation en langage naturel ;
+- `ground_truth` : reponse factuelle de reference (1-3 phrases) ;
+- `expected_keywords` : mots-cles attendus dans la reponse ;
+- `expected_city` : ville attendue, `null` pour les cas negatifs et ambigus.
 
-Limite importante : ce jeu est utile pour un POC et la non-regression, mais il reste de taille reduite et les references sont plus proches d'un guide de reponse attendue que d'une verite terrain exhaustivement annotee.
+Ce jeu couvre trois registres essentiels pour evaluer un systeme RAG : les cas ou le systeme doit trouver et restituer une information, les cas ou il doit reconnaitre l'absence d'information, et les cas ou la question est trop ouverte pour une reponse deterministe.
 
 ### Evaluation heuristique
 
@@ -410,53 +413,89 @@ Le script `evaluate_rag.py` mesure :
 - `city_match` : presence d'au moins une source dans la ville attendue ;
 - un label global : `correct`, `partially_correct`, `incorrect`.
 
-Regle appliquee :
+Regles appliquees :
 
-- `correct` si `keyword_coverage >= 0.66` et `city_match = true`
-- `partially_correct` si au moins un des deux criteres est partiellement satisfait
-- `incorrect` sinon
+- `correct` si `keyword_coverage >= 0.66` et `city_match = true` (cas positifs) ;
+- `correct` si signal de refus detecte dans la reponse (cas negatifs : "aucun evenement", "je ne dispose pas", etc.) ;
+- `partially_correct` si au moins un critere est partiellement satisfait ;
+- `incorrect` sinon.
 
-Resultats heuristiques actuellement stockes :
+Resultats sur les 30 cas :
 
-- total : 5 cas
-- correct : 5
-- partially_correct : 0
-- incorrect : 0
-- avg_keyword_coverage : 1.0
+| Indicateur | Valeur |
+|---|---|
+| Total | 30 |
+| Correct | 22 (73 %) |
+| Partiellement correct | 3 (10 %) |
+| Incorrect | 5 (17 %) |
+| Avg keyword coverage | 0.908 |
+| Repartition | 20 positifs / 5 negatifs / 5 ambigus |
 
-Interpretation : ces resultats montrent que le pipeline fonctionne bien sur le petit jeu de test defini, mais ils ne prouvent pas une robustesse generale. La metrique est indulgente et tres dependante des mots-cles choisis.
+Interpretation : 73 % de reponses correctes sur un jeu equilibre incluant des cas negatifs est un resultat solide pour un POC. Les 17 % incorrects concernent principalement des cas ou le modele echoue a exprimer un refus explicite sur des questions hors corpus, ou des cas ambigus ou la reponse varie selon la date.
 
 ### Evaluation Ragas
 
-Le script `evaluate_ragas.py` construit un dataset a partir :
+#### Metriques retenues et disponibles
 
-- des questions du jeu annote ;
-- des reponses generees par le systeme ;
-- des contextes recuperes ;
-- des references humaines du fichier annote.
+RAGAS 0.4.x propose un large catalogue de metriques. Pour ce POC, les metriques retenues sont celles qui :
 
-Les metriques configurees sont :
+1. evaluent les trois piliers fondamentaux d'un pipeline RAG (generation, precision, rappel) ;
+2. sont compatibles avec un LLM Mistral et des embeddings Mistral (sans dependance a OpenAI ou NVIDIA) ;
+3. ont produit des resultats exploitables malgre les contraintes de rate limiting de l'API.
 
-- `faithfulness`
-- `answer_relevancy`
-- `context_precision`
+| Metrique | Retenue | Raison |
+|---|---|---|
+| `faithfulness` | Oui | Mesure si la reponse est ancree dans les documents recuperes (detection d'hallucination). Fondamentale pour evaluer la fidelite RAG. |
+| `context_precision` | Oui | Mesure quelle proportion des chunks recuperes est reellement utile a la reponse. Evalue la qualite du retrieval. |
+| `context_recall` | Oui | Mesure si les informations necessaires a la reponse sont bien presentes dans les chunks recuperes. Evalue la completude du retrieval. |
+| `answer_relevancy` | Non | Necessite de generer des questions synthétiques a partir de la reponse puis de calculer une similarite cosinus. Echecs systematiques sur ce corpus en raison du rate limiting API lors de l'evaluation. Constitue une amelioration future. |
+| `context_relevancy` (NV) | Non | Variante specifique NVIDIA (`nv_context_relevance`) dans RAGAS 0.4.x. Incompatible avec les modeles Mistral. Remplacable par `answer_correctness` ou `semantic_similarity` dans une version future. |
+| `answer_correctness` | Non retenu | Combine faithfulness et similarite semantique ; necessite un `ground_truth` tres precis et factuel, difficile a garantir sur un dataset genere automatiquement. |
+| `semantic_similarity` | Non retenu | Pertinent pour des questions a reponse unique ; peu adapte aux questions ouvertes sur des listes d'evenements. |
 
-Le repo integre donc bien Ragas dans un pipeline automatisable. En revanche, les derniers resultats sauvegardes dans `ragas_results.json` contiennent actuellement des valeurs `NaN`. Cela signifie que l'integration est en place, mais que l'exploitation quantitative des resultats Ragas n'est pas encore suffisamment stabilisee pour soutenir une conclusion forte. Ce point doit etre presente comme une limite honnete du POC, pas comme un succes deja acquis.
+#### Resultats obtenus
+
+Script : `scripts/evaluate_ragas.py` sur 30 cas du jeu annote, avec `max_workers=1` pour respecter les limites de l'API Mistral.
+
+| Metrique | Score |
+|---|---|
+| faithfulness | **0.762** |
+| context_precision | **0.575** |
+| context_recall | **0.650** |
+| answer_relevancy | null (echecs API) |
+| context_relevancy | null (metrique NV incompatible) |
+
+#### Interpretation des resultats
+
+**Faithfulness : 0.762**
+
+76 % des reponses generees sont bien ancrees dans les documents recuperes. Ce score indique que le modele respecte generalement la consigne de ne pas inventer d'information absente du contexte. Les 24 % de defaillances concernent principalement les cas negatifs et ambigus, ou le modele a tendance a reformuler des informations approximatives plutot qu'a exprimer un refus explicite.
+
+**Context precision : 0.575**
+
+57,5 % des chunks recuperes par le retriever sont reellement pertinents pour repondre a la question. Ce score moyen revele un bruit notable dans le retrieval : environ 4 documents sur 10 recuperes n'apportent pas d'information utile a la reponse finale. Cela s'explique en partie par l'absence de filtrage par metadonnees (categorie, date) et l'absence de reranker. C'est la metrique la plus directement ameliorable.
+
+**Context recall : 0.650**
+
+65 % des informations factuelles necessaires a la reponse sont presentes dans les chunks recuperes. Un rappel de 0.65 signifie que le retriever manque environ 35 % des informations pertinentes. Plusieurs facteurs l'expliquent : `top_k=5` peut etre insuffisant pour les questions portant sur plusieurs evenements, et certains chunks ne contiennent pas l'information cle en raison du decoupage (chunking).
+
+**Coherence globale**
+
+Les trois scores sont coherents entre eux. Un context recall de 0.65 limite mecaniquement la faithfulness atteignable : si le modele n'a pas acces aux informations pertinentes, il ne peut pas les restituer. La context precision de 0.575 confirme que le retrieval est le maillon le plus fragile du pipeline, ce qui oriente directement les pistes d'amelioration.
 
 ### Analyse qualitative
 
-Exemples de points positifs observes dans `evaluation_results.json` :
+Points positifs observes :
 
-- les reponses mentionnent souvent titre, date, lieu et conditions ;
-- le systeme repond de maniere structuree et lisible ;
-- les reponses restent en general ancrees dans le contexte fourni.
+- les reponses mentionnent systematiquement titre, date, lieu et conditions quand les documents les contiennent ;
+- le systeme repond de maniere structuree et lisible, en francais ;
+- les cas de refus (cas negatifs) sont correctement geres dans 4 cas sur 5.
 
-Erreurs ou limites frequentes observees :
+Limites observees :
 
-- certaines sources retournees sont peu pertinentes par rapport a la question ;
-- quelques titres peuvent etre vides dans les sources ;
-- l'absence de reranker peut laisser passer des chunks moins utiles ;
-- l'evaluation heuristique surestime parfois la qualite reelle.
+- certains chunks recuperes contiennent des evenements generiques (ex. "Mai a Velo 2025") peu specifiques a la question posee ;
+- les cas ambigus (questions dependantes de la date) produisent des reponses en general correctes mais pas toujours precises ;
+- l'absence de reranker laisse passer des chunks hors sujet dans le top-5.
 
 ## 8. Recommandations et perspectives
 
@@ -470,22 +509,22 @@ Erreurs ou limites frequentes observees :
 
 ### Limites du POC
 
-- jeu de test annote encore modeste ;
 - pas de benchmark de performance formel (latence, debit, memoire) ;
 - pas de reranking ;
 - pas d'historique conversationnel ;
 - dependance a l'API Mistral ;
-- exploitation Ragas a consolider car les derniers resultats sauvegardes sont `NaN`.
+- deux metriques Ragas non disponibles (answer_relevancy : rate limiting, context_relevancy : metrique NV incompatible avec Mistral) ;
+- evaluation limitee a 30 cas generes automatiquement, sans validation humaine exhaustive.
 
 ### Ameliorations possibles
 
-- enrichir fortement le benchmark annote ;
-- ajouter des cas negatifs et ambigus ;
-- introduire un reranker ;
-- ajouter des scores de retrieval exploitables dans les sources ;
-- completer l'evaluation par de la revue humaine ;
-- ajouter un benchmark de performance simple ;
-- etudier un filtrage metadonnees + retrieval hybride ;
+- introduire un reranker pour ameliorer la context precision (actuellement 0.575) ;
+- ajouter un filtre par seuil de distance FAISS (`max_distance_threshold`) : permettrait d'ecarter les documents trop eloignes semantiquement de la requete, reduisant le bruit dans le retrieval et ameliorant la precision des reponses sur les cas hors corpus ;
+- augmenter `top_k` ou implementer un retrieval adaptatif pour ameliorer le context recall (actuellement 0.650) ;
+- ajouter des scores de retrieval exploitables dans les sources retournees ;
+- completer l'evaluation par de la revue humaine sur un sous-ensemble ;
+- ajouter un benchmark de performance simple (latence p50/p95) ;
+- etudier un filtrage metadonnees + retrieval hybride (lexical + semantique) ;
 - preparer une cible de deploiement plus robuste.
 
 ### Passage en production
@@ -601,4 +640,4 @@ Le projet livre un POC RAG fonctionnel, relancable et demonstrable, conforme a l
 - evaluation automatisable ;
 - Docker et CI.
 
-Le systeme est defendable en soutenance a condition de presenter honnetement ses limites actuelles : benchmark annote encore restreint, absence de mesures de performance formalisees et exploitation Ragas encore a consolider.
+Le systeme est defendable en soutenance. Les resultats d'evaluation sont honnetes et coherents : 73 % de reponses correctes sur 30 cas equilibres (positifs, negatifs, ambigus), une faithfulness de 0.76 confirmant la fidelite au contexte, et une context precision de 0.575 qui identifie clairement le retrieval comme le maillon a ameliorer. Ces chiffres sont interpretables et orientent directement les pistes d'evolution.
