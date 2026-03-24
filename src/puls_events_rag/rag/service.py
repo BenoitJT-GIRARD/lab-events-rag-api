@@ -16,9 +16,7 @@ def build_chat_model() -> ChatMistralAI:
     settings = get_settings()
 
     if not settings.mistral_api_key:
-        raise ValueError(
-            "PULS_EVENTS_MISTRAL_API_KEY is missing. Set it in your .env."
-        )
+        raise ValueError("PULS_EVENTS_MISTRAL_API_KEY is missing. Set it in your .env.")
 
     return ChatMistralAI(
         model=settings.chat_model,
