@@ -45,8 +45,7 @@ Le projet s'appuie sur le dataset public OpenDataSoft :
 Même si l'énoncé mentionne OpenAgenda, les ressources pédagogiques fournissent explicitement ce dataset public OpenDataSoft. Ce choix permet :
 
 - une **reproductibilité directe** ;
-- l'absence de clé API spécifique à OpenAgenda ;
-- une meilleure **défendabilité** vis-à-vis du périmètre réellement fourni dans les supports.
+- l'absence de clé API spécifique à OpenAgenda.
 
 Le projet reste donc aligné avec le besoin métier : interroger des événements publics issus de l'écosystème OpenAgenda, via leur exposition publique sur OpenDataSoft.
 
