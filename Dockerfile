@@ -17,4 +17,4 @@ RUN uv sync --no-dev
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "puls_events_rag.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "events_rag.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

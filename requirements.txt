@@ -76,9 +76,9 @@ email-validator==2.3.0
     #   fastapi
     #   pydantic
 faiss-cpu==1.13.2
-    # via puls-events-rag
+    # via events-rag
 fastapi==0.135.1
-    # via puls-events-rag
+    # via events-rag
 fastapi-cli==0.0.24
     # via fastapi
 fastapi-cloud-cli==0.14.1
@@ -121,7 +121,7 @@ httpx==0.28.1
     #   langgraph-sdk
     #   langsmith
     #   openai
-    #   puls-events-rag
+    #   events-rag
 httpx-sse==0.4.3
     # via
     #   langchain-community
@@ -157,13 +157,13 @@ jsonpointer==3.0.0
     # via jsonpatch
 langchain==1.2.11
     # via
-    #   puls-events-rag
+    #   events-rag
     #   ragas
 langchain-classic==1.0.2
     # via langchain-community
 langchain-community==0.4.1
     # via
-    #   puls-events-rag
+    #   events-rag
     #   ragas
 langchain-core==1.2.18
     # via
@@ -178,13 +178,13 @@ langchain-core==1.2.18
     #   langgraph-prebuilt
     #   ragas
 langchain-mistralai==1.1.1
-    # via puls-events-rag
+    # via events-rag
 langchain-openai==1.1.11
     # via ragas
 langchain-text-splitters==1.1.1
     # via
     #   langchain-classic
-    #   puls-events-rag
+    #   events-rag
 langgraph==1.1.0
     # via langchain
 langgraph-checkpoint==4.0.1
@@ -295,7 +295,7 @@ pydantic-settings==2.13.1
     # via
     #   fastapi
     #   langchain-community
-    #   puls-events-rag
+    #   events-rag
 pygments==2.19.2
     # via
     #   pytest
@@ -312,7 +312,7 @@ python-discovery==1.1.3
     # via virtualenv
 python-dotenv==1.2.2
     # via
-    #   puls-events-rag
+    #   events-rag
     #   pydantic-settings
     #   uvicorn
 python-multipart==0.0.22
@@ -376,13 +376,13 @@ starlette==0.52.1
 stevedore==5.7.0
     # via bandit
 structlog==25.5.0
-    # via puls-events-rag
+    # via events-rag
 tenacity==9.1.4
     # via
     #   instructor
     #   langchain-community
     #   langchain-core
-    #   puls-events-rag
+    #   events-rag
 tiktoken==0.12.0
     # via
     #   langchain-openai
@@ -441,7 +441,7 @@ uvicorn==0.41.0
     #   fastapi
     #   fastapi-cli
     #   fastapi-cloud-cli
-    #   puls-events-rag
+    #   events-rag
 uvloop==0.22.1 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'
     # via uvicorn
 virtualenv==21.2.0

@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from puls_events_rag.api.main import app
+from events_rag.api.main import app
 
 
 def test_metadata_endpoint_returns_expected_fields() -> None:

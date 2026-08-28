@@ -1,10 +1,10 @@
-# Rapport technique - Puls Events RAG
+# Rapport technique - Events RAG
 
 ## 1. Objectifs du projet
 
 ### Contexte
 
-Puls-Events souhaite tester un assistant intelligent capable de repondre a des questions en langage naturel sur des evenements culturels. Le POC doit montrer qu'une plateforme de recommandation peut s'appuyer sur un systeme RAG pour interroger un corpus d'evenements et retourner une reponse formulee naturellement.
+events-rag souhaite tester un assistant intelligent capable de repondre a des questions en langage naturel sur des evenements culturels. Le POC doit montrer qu'une plateforme de recommandation peut s'appuyer sur un systeme RAG pour interroger un corpus d'evenements et retourner une reponse formulee naturellement.
 
 ### Problematique
 
@@ -542,7 +542,7 @@ Pour un deploiement elargi, il faudrait au minimum :
 Arborescence fonctionnelle :
 
 ```text
-src/puls_events_rag/
+src/events_rag/
   api/          -> endpoints FastAPI et schemas
   evaluation/   -> evaluation heuristique et Ragas
   ingestion/    -> client OpenDataSoft et preprocessing
@@ -625,7 +625,7 @@ rag.answer_generated
 
 ## Conclusion
 
-Le projet livre un POC RAG fonctionnel, relancable et demonstrable, conforme a l'esprit de la mission Puls-Events :
+Le projet livre un POC RAG fonctionnel, relancable et demonstrable, conforme a l'esprit de la mission events-rag :
 
 - ingestion de donnees d'evenements ;
 - preparation documentaire ;

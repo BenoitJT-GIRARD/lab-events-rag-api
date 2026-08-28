@@ -23,10 +23,10 @@ from ragas.metrics import (
 )
 from ragas.run_config import RunConfig
 
-from puls_events_rag.config import get_settings
-from puls_events_rag.rag.prompts import SYSTEM_PROMPT, build_user_prompt
-from puls_events_rag.rag.retriever import build_embeddings, retrieve_documents
-from puls_events_rag.rag.service import build_chat_model, format_context
+from events_rag.config import get_settings
+from events_rag.rag.prompts import SYSTEM_PROMPT, build_user_prompt
+from events_rag.rag.retriever import build_embeddings, retrieve_documents
+from events_rag.rag.service import build_chat_model, format_context
 
 
 def safe_mean(values: list) -> float | None:

@@ -1,9 +1,9 @@
 import json
 
-from puls_events_rag.config import get_settings
-from puls_events_rag.ingestion.openagenda_client import OpenAgendaClient
-from puls_events_rag.ingestion.preprocess import event_to_document
-from puls_events_rag.logger import get_logger
+from events_rag.config import get_settings
+from events_rag.ingestion.openagenda_client import OpenAgendaClient
+from events_rag.ingestion.preprocess import event_to_document
+from events_rag.logger import get_logger
 
 logger = get_logger(__name__)
 

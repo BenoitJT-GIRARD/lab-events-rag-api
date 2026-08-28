@@ -1,4 +1,4 @@
-from puls_events_rag.ingestion.preprocess import event_to_document, strip_html
+from events_rag.ingestion.preprocess import event_to_document, strip_html
 
 
 def test_strip_html_removes_tags() -> None:

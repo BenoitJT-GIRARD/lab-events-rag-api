@@ -1,7 +1,7 @@
 from html import unescape
 from re import sub
 
-from puls_events_rag.logger import get_logger
+from events_rag.logger import get_logger
 
 logger = get_logger(__name__)
 

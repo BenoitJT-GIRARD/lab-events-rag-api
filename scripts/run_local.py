@@ -10,7 +10,7 @@ COMMANDS = [
         "uv",
         "run",
         "uvicorn",
-        "puls_events_rag.api.main:app",
+        "events_rag.api.main:app",
         "--host",
         "127.0.0.1",
         "--port",

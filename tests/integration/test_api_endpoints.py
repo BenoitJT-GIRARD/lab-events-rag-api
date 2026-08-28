@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from puls_events_rag.api.main import app
+from events_rag.api.main import app
 
 
 def test_health_endpoint() -> None:

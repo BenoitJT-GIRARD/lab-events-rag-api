@@ -1,6 +1,6 @@
 from langchain_core.documents import Document
 
-from puls_events_rag.rag.indexer import split_documents, to_langchain_documents
+from events_rag.rag.indexer import split_documents, to_langchain_documents
 
 
 def test_to_langchain_documents_creates_documents() -> None:

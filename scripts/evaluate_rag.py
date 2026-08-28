@@ -1,6 +1,6 @@
 import json
 
-from puls_events_rag.evaluation.evaluate import run_evaluation
+from events_rag.evaluation.evaluate import run_evaluation
 
 if __name__ == "__main__":
     payload = run_evaluation()

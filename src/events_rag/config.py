@@ -11,11 +11,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        env_prefix="PULS_EVENTS_",
+        env_prefix="EVENTS_RAG_",
         extra="ignore",
     )
 
-    app_name: str = "Puls Events RAG API"
+    app_name: str = "Events RAG API"
     env: str = "dev"
     log_level: str = "INFO"
 

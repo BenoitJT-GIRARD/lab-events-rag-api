@@ -1,4 +1,4 @@
-# Puls Events RAG
+# Events RAG
 
 POC de système **RAG (Retrieval-Augmented Generation)** pour la recommandation d'événements culturels à partir du dataset public OpenDataSoft `evenements-publics-openagenda`, avec **LangChain**, **Mistral**, **FAISS** et une **API FastAPI**.
 
@@ -91,7 +91,7 @@ Le projet reste donc aligné avec le besoin métier : interroger des événement
 ## 5. Structure du projet
 
 ```text
-puls-events-rag/
+events-rag/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml
@@ -118,7 +118,7 @@ puls-events-rag/
 │   ├── generate_eval_dataset.py
 │   └── run_local.py
 ├── src/
-│   └── puls_events_rag/
+│   └── events_rag/
 │       ├── api/
 │       ├── evaluation/
 │       ├── ingestion/
@@ -162,7 +162,7 @@ Le pipeline suit les étapes suivantes :
 
 ```bash
 git clone <repo_url>
-cd puls-events-rag
+cd events-rag
 ```
 
 ### 7.2. Installer les dépendances avec uv
@@ -181,26 +181,26 @@ Créer un fichier `.env` à partir de `.env.example`.
 Exemple minimal :
 
 ```dotenv
-PULS_EVENTS_ENV=dev
-PULS_EVENTS_LOG_LEVEL=INFO
+EVENTS_RAG_ENV=dev
+EVENTS_RAG_LOG_LEVEL=INFO
 
-PULS_EVENTS_LOCATION_FIELD=city
-PULS_EVENTS_LOCATION_VALUE=Montpellier
-PULS_EVENTS_LANG=fr
-PULS_EVENTS_TIMEZONE=Europe/Paris
+EVENTS_RAG_LOCATION_FIELD=city
+EVENTS_RAG_LOCATION_VALUE=Montpellier
+EVENTS_RAG_LANG=fr
+EVENTS_RAG_TIMEZONE=Europe/Paris
 
-PULS_EVENTS_DATE_WINDOW_MODE=rolling
-PULS_EVENTS_DATE_WINDOW_DAYS=365
+EVENTS_RAG_DATE_WINDOW_MODE=rolling
+EVENTS_RAG_DATE_WINDOW_DAYS=365
 
-PULS_EVENTS_INGESTION_BATCH_SIZE=100
-PULS_EVENTS_INGESTION_MAX_RECORDS=700
+EVENTS_RAG_INGESTION_BATCH_SIZE=100
+EVENTS_RAG_INGESTION_MAX_RECORDS=700
 
-PULS_EVENTS_MISTRAL_API_KEY=your_mistral_api_key
-PULS_EVENTS_EMBEDDING_MODEL=mistral-embed
-PULS_EVENTS_CHAT_MODEL=mistral-small-latest
+EVENTS_RAG_MISTRAL_API_KEY=your_mistral_api_key
+EVENTS_RAG_EMBEDDING_MODEL=mistral-embed
+EVENTS_RAG_CHAT_MODEL=mistral-small-latest
 
-PULS_EVENTS_FAISS_INDEX_NAME=events_index
-PULS_EVENTS_REBUILD_TOKEN=change_me_local_token
+EVENTS_RAG_FAISS_INDEX_NAME=events_index
+EVENTS_RAG_REBUILD_TOKEN=change_me_local_token
 ```
 
 ---
@@ -290,7 +290,7 @@ Sortie :
 ### 9.6. Lancer l'API
 
 ```bash
-uv run fastapi dev src/puls_events_rag/api/main.py
+uv run fastapi dev src/events_rag/api/main.py
 ```
 
 Documentation interactive :
@@ -530,13 +530,13 @@ Un `requirements.txt` exporté est toutefois fourni pour répondre explicitement
 ### Build
 
 ```bash
-docker build -t puls-events-rag .
+docker build -t events-rag .
 ```
 
 ### Run
 
 ```bash
-docker run --rm -p 8000:8000 --env-file .env puls-events-rag
+docker run --rm -p 8000:8000 --env-file .env events-rag
 ```
 
 ### Avec Docker Compose

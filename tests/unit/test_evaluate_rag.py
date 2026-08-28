@@ -1,6 +1,6 @@
 import pytest
 
-from puls_events_rag.evaluation.evaluate import (
+from events_rag.evaluation.evaluate import (
     city_match,
     is_refusal,
     keyword_coverage,

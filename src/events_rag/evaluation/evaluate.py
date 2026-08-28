@@ -2,8 +2,8 @@ import json
 import re
 from pathlib import Path
 
-from puls_events_rag.config import get_settings
-from puls_events_rag.rag.service import answer_question
+from events_rag.config import get_settings
+from events_rag.rag.service import answer_question
 
 
 def load_reference_dataset(path: Path) -> list[dict]:

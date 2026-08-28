@@ -1,6 +1,6 @@
 from langchain_core.documents import Document
 
-from puls_events_rag.rag.service import build_sources, format_context
+from events_rag.rag.service import build_sources, format_context
 
 
 def test_format_context_includes_metadata_and_content() -> None:

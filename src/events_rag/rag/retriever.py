@@ -5,8 +5,8 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_mistralai import MistralAIEmbeddings
 
-from puls_events_rag.config import get_settings
-from puls_events_rag.logger import get_logger
+from events_rag.config import get_settings
+from events_rag.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -16,7 +16,7 @@ def build_embeddings() -> MistralAIEmbeddings:
     settings = get_settings()
 
     if not settings.mistral_api_key:
-        raise ValueError("PULS_EVENTS_MISTRAL_API_KEY is missing. Set it in your .env.")
+        raise ValueError("EVENTS_RAG_MISTRAL_API_KEY is missing. Set it in your .env.")
 
     return MistralAIEmbeddings(
         model=settings.embedding_model,

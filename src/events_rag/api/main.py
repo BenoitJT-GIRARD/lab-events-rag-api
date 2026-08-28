@@ -2,17 +2,17 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 
-from puls_events_rag.api.schemas import (
+from events_rag.api.schemas import (
     AskRequest,
     AskResponse,
     MetadataResponse,
     RebuildRequest,
     RebuildResponse,
 )
-from puls_events_rag.config import get_settings
-from puls_events_rag.logger import configure_logging, get_logger
-from puls_events_rag.rag.indexer import build_and_save_index
-from puls_events_rag.rag.service import answer_question
+from events_rag.config import get_settings
+from events_rag.logger import configure_logging, get_logger
+from events_rag.rag.indexer import build_and_save_index
+from events_rag.rag.service import answer_question
 
 
 @asynccontextmanager
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Puls Events RAG API",
+    title="Events RAG API",
     version="0.1.0",
     lifespan=lifespan,
 )

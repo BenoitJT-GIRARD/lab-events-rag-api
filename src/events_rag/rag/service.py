@@ -3,10 +3,10 @@ from functools import lru_cache
 from langchain_core.documents import Document
 from langchain_mistralai import ChatMistralAI
 
-from puls_events_rag.config import get_settings
-from puls_events_rag.logger import get_logger
-from puls_events_rag.rag.prompts import SYSTEM_PROMPT, build_user_prompt
-from puls_events_rag.rag.retriever import retrieve_documents
+from events_rag.config import get_settings
+from events_rag.logger import get_logger
+from events_rag.rag.prompts import SYSTEM_PROMPT, build_user_prompt
+from events_rag.rag.retriever import retrieve_documents
 
 logger = get_logger(__name__)
 
@@ -16,7 +16,7 @@ def build_chat_model() -> ChatMistralAI:
     settings = get_settings()
 
     if not settings.mistral_api_key:
-        raise ValueError("PULS_EVENTS_MISTRAL_API_KEY is missing. Set it in your .env.")
+        raise ValueError("EVENTS_RAG_MISTRAL_API_KEY is missing. Set it in your .env.")
 
     return ChatMistralAI(
         model=settings.chat_model,
