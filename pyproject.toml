@@ -89,10 +89,10 @@ source = ["src/events_rag", "scripts"]
 data_file = "var/.coverage"
 # The figure style is a vendored copy of the portfolio module, identical in every repository
 # and tested where it is written. Counting it here would measure someone else's tests.
-# Two vendored copies of portfolio tooling, tested where they are written: the figure style
-# and the capture script each have their own suite in the governance repository. Counting
-# them here would measure someone else's tests.
-omit = ["*/figure_style.py", "scripts/capture.py"]
+# Three vendored copies of portfolio tooling, tested where they are written: the figure
+# style, the capture script and the smoke runner each have their own suite in the governance
+# repository. Counting them here would measure someone else's tests.
+omit = ["*/figure_style.py", "scripts/capture.py", "scripts/smoke.py"]
 
 [tool.coverage.report]
 # The floor is the rate measured the day the three tiers were completed, rounded down. A
